@@ -1,1 +1,38 @@
+def transcribe_audio_from_file(file_path):
+    """Transcribe audio from a file using Google Speech-to-Text."""
+    from google.cloud import speech_v1
+    from google.cloud.speech_v1 import types
+    import logging
 
+    client = speech_v1.SpeechClient.from_service_account_json('convstt.json')
+
+    try:
+        with open(file_path, "rb") as audio_file:
+            audio_content = audio_file.read()
+        logging.info(f"Audio file {file_path} read successfully")
+    except IOError as e:
+        logging.error(f"Error reading audio file: {e}")
+        return None
+
+    audio = types.RecognitionAudio(content=audio_content)
+    config = types.RecognitionConfig(
+        encoding=types.RecognitionConfig.AudioEncoding.LINEAR16,
+        language_code='en-US'
+    )
+
+    try:
+        response = client.recognize(config=config, audio=audio)
+        logging.info(f"Transcription response received: {response}")
+    except Exception as e:
+        logging.error(f"Error during transcription request: {e}")
+        return None
+
+    if not response.results:
+        logging.error("No results found in transcription response")
+        return ""
+
+    transcript = ""
+    for result in response.results:
+        transcript += result.alternatives[0].transcript
+
+    return transcript.strip()  # Ensure trailing spaces are removed
